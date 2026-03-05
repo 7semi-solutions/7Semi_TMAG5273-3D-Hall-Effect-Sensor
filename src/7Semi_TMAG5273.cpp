@@ -1288,7 +1288,7 @@ bool TMAG5273_7Semi::readMag(float &x, float &y, float &z)
 
     x = (rx / 32768.0f) * xy_range_mT;
     y = (ry / 32768.0f) * xy_range_mT;
-    z = (-1 * rz / 32768.0f) * z_range_mT;
+    z = (rz / 32768.0f) * z_range_mT;
 
     return true;
 }
