@@ -1,195 +1,176 @@
-# 7Semi BMA400 Arduino Library
+# 7Semi TMAG5273 Arduino Library
 
-Arduino driver for the Bosch BMA400 ultra-low power 3-axis accelerometer.
+Arduino driver for the Texas Instruments TMAG5273 3-axis Hall-effect magnetic sensor.
 
-The BMA400 provides precise acceleration measurement, ultra-low power consumption, and an advanced interrupt engine for motion-based applications such as activity detection, step monitoring, and vibration sensing.
+The TMAG5273 provides high-accuracy magnetic field measurement, temperature sensing, and angle calculation.
 
 ## Features
 
-- Full BMA400 register control
+- Full TMAG5273 register control
 
-- Acceleration measurement (X, Y, Z)
+- Magnetic field measurement (X, Y, Z)
 
-- Configurable Output Data Rate (ODR)
-
-- Selectable measurement range (±2g, ±4g, ±8g, ±16g)
-
-- FIFO buffer support
-
-- Interrupt configuration:
-  - Data ready
-  - FIFO watermark / full
-  - Activity detection (generic interrupt)
-
-- Power modes:
-  - Sleep mode
-  - Low power mode
-  - Normal mode
-
-- Auto low-power and auto wake-up support
-
-- Sensor time reading
+- Magnetic angle calculation
 
 - Temperature measurement
 
+- Magnetic threshold detection
+
+- Interrupt configuration
+
+- Magnetic gain and offset calibration
+
+- Low-power and continuous measurement modes
+
+- Conversion status monitoring
+  
 ---
+ ## Connections / Wiring
 
-## Connections / Wiring
-
-The BMA400 supports both **I²C and SPI communication**.
-
----
+The TMAG5273 communicates using I²C.
 
 ## I²C Connection
-
-| BMA400 Pin | MCU Pin         | Notes            |
-| ---------- | --------------- | ---------------- |
-| VCC        | 3.3V            | **3.3V only**    |
-| GND        | GND             | Common ground    |
-| SDA        | SDA             | I²C data         |
-| SCL        | SCL             | I²C clock        |
-| INT1       | GPIO (optional) | Interrupt output |
-| INT2       | GPIO (optional) | Interrupt output |
+| TMAG5273 Pin | MCU Pin         | Notes            |
+| ------------ | --------------- | ---------------- |
+| VCC          | 3.3V            | **3.3V only**    |
+| GND          | GND             | Common ground    |
+| SDA          | SDA             | I²C data         |
+| SCL          | SCL             | I²C clock        |
+| INT          | GPIO (optional) | Interrupt output |
 
 ### I²C Notes
 
-- Default I²C address: `0x14` (SDO = GND) or `0x15` (SDO = VCC)
+- Default I²C address: 0x35
 
 - Supported bus speeds:
+
   - 100 kHz
+
   - 400 kHz (recommended)
 
 ---
 
-## SPI Connection
-
-| BMA400 Pin | MCU Pin |
-| ---------- | ------- |
-| VCC        | 3.3V    |
-| GND        | GND     |
-| SCK        | SCK     |
-| MISO       | MISO    |
-| MOSI       | MOSI    |
-| CS         | GPIO    |
-| INT1       | GPIO (optional) |
-| INT2       | GPIO (optional) |
-
----
-
 ## Installation
-
 - Arduino Library Manager
 
-  1. Open Arduino IDE  
-  2. Go to Library Manager  
-  3. Search for **7Semi BMA400**  
-  4. Click Install  
+  1. Open Arduino IDE
+
+  2. Go to Library Manager
+
+  3. Search for 7Semi TMAG5273
+
+  4. Click Install
 
 - Manual Installation
 
-  1. Download this repository as ZIP  
-  2. Arduino IDE → Sketch → Include Library → Add .ZIP Library  
+  1. Download this repository as ZIP
+
+  2. Arduino IDE → Sketch → Include Library → Add .ZIP Library
 
 ---
 
 ## Library Overview
 
-### Reading Acceleration
-
+### Reading Magnetic Field
 ```cpp
 float x, y, z;
 
-sensor.readAccel(x, y, z);
-
+sensor.readMag(x, y, z);
 ```
-- Reading Temperature
 
-## Reading Temperature
+- Returns magnetic field strength in milliTesla (mT).
 
+### Reading Temperature
 ```cpp
 float temperature;
 
 sensor.readTemperatureC(temperature);
 ```
-
 - Returns temperature in °C.
 
-## FIFO Data Reading
+### Angle Measurement
 
+The TMAG5273 can be used for magnetic rotary encoders.
 ```cpp
-float x, y, z;
 
-sensor.readFifo(x, y, z);
+float angle;
+
+sensor.calculateAngleXY(angle);
 ```
-- Reads acceleration data from FIFO buffer.
+- Returns 0-360° angle based on the magnetic field.
 
-## Power Modes
+### Operating Modes
 
-The BMA400 supports multiple power modes:
+The TMAG5273 supports multiple operating modes:
 
-- Sleep mode
+- Continuous measurement
 - Low power mode
-- Normal mode
+- Wake-up and sleep mode
+- Triggered measurements
 
+These modes allow balancing power consumption and response time depending on the application.
+
+Example:
 ```cpp
-sensor.setPowerMode(NORMAL_MODE);
+sensor.setOperatingMode(MODE_CONTINUOUS);
 ```
+### Magnetic Range
 
-## Output Data Rate (ODR)
+Magnetic field range can be configured.
 
-Configure accelerometer sampling rate:
+Range	Field Strength
+XY_8192	±40 mT
+XY_16384	±80 mT
 
+Example:
 ```cpp
-sensor.setAccelODR(ODR_100Hz);
+sensor.setXYRange(XY_16384);
+sensor.setZRange(Z_16384);
 ```
+### Interrupts
 
-## Measurement Range
+The sensor supports interrupt generation for events such as:
 
-Set acceleration range:
+Magnetic threshold detection
 
-| Range     | Description |
-| --------- | ----------- |
-| RANGE_2G  | ±2g         |
-| RANGE_4G  | ±4g         |
-| RANGE_8G  | ±8g         |
-| RANGE_16G | ±16g        |
+Conversion completion
 
+System diagnostics
+
+Example:
 ```cpp
-sensor.setAccelRange(RANGE_4G);
+sensor.setInterrupt(true, false, false, INTERRUPT_MODE_INT);
 ```
+### Threshold Detection
 
-## Interrupts
-
-The BMA400 supports multiple interrupt sources:
-
-- Data ready
-- FIFO watermark
-- FIFO full
-
+Threshold detection allows the sensor to trigger interrupts when magnetic field values exceed a defined level.
 ```cpp
-sensor.setIntEnable(BMA400_INT_DATA_READY, true);
+sensor.setMagThreshold(20, 20, 20);
 ```
+### Conversion Status
 
-## Sensor Time
+Check if a new measurement is ready.
 
+ConvStatus status;
 ```cpp
-uint32_t sensorTime;
+sensor.readConversionStatus(status);
 
-sensor.readSensorTime(sensorTime);
+if(status.resultReady)
+{
+  Serial.println("New data available");
+}
 ```
-- Returns internal sensor timestamp.
+### Device Diagnostics
 
-## Device Status
+The sensor provides internal status information.
 
+DeviceStatus status;
 ```cpp
-bool power_on;
+sensor.readDeviceStatus(status);
 
-sensor.checkPowerStatus(power_on);
+if(status.vccUV)
+{
+  Serial.println("Undervoltage detected");
+}
 ```
-
-- Provides device power and status information.
-
-### Notes
-- Advanced interrupts require Normal mode
-- Recommended ODR for interrupts: 100 Hz
-- FIFO and interrupt features can be combined for eficient data handling
+make read me file for this library in this format
